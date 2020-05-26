@@ -1,10 +1,15 @@
 package com.emfldlem.webtoonStore.Controller;
 
 
-import com.emfldlem.Common.CommonUtil;
-import com.emfldlem.webtoonStore.Entity.WebtoonEntity;
-import com.emfldlem.webtoonStore.Service.WebtoonService;
-import lombok.extern.slf4j.Slf4j;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.List;
+
+import javax.imageio.ImageIO;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -17,13 +22,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.InputStream;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.List;
+import com.emfldlem.Common.CommonUtil;
+import com.emfldlem.webtoonStore.Entity.Newtoki_mEntity;
+import com.emfldlem.webtoonStore.Entity.WebtoonEntity;
+import com.emfldlem.webtoonStore.Service.Newtoki_dService;
+import com.emfldlem.webtoonStore.Service.Newtoki_mService;
+import com.emfldlem.webtoonStore.Service.WebtoonService;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Controller
@@ -43,12 +48,16 @@ public class webtoonStoreController {
     @Autowired
     WebtoonService webtoonService;
 
+    @Autowired
+    Newtoki_dService newtoki_dService;
 
+    @Autowired
+    Newtoki_mService newtoki_mService;
 
 
     @GetMapping(value = "/test")
     @ResponseBody
-    public void webtoonTest()  {
+    public void webtoonTest() {
 
         try {
 
@@ -57,7 +66,7 @@ public class webtoonStoreController {
 
             List<WebtoonEntity> weekWebtoonList = webtoonService.getWeekList(dayOfWeek);
 
-            for(WebtoonEntity webtoon : weekWebtoonList) {
+            for (WebtoonEntity webtoon : weekWebtoonList) {
 
                 //해당 webtoon의 가장 최신화 조회
                 String listUrl = naverListUrl + "titleId=" + webtoon.getTitleId();
@@ -112,8 +121,7 @@ public class webtoonStoreController {
 
             }
 
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error(e.getMessage());
         }
 
@@ -125,9 +133,9 @@ public class webtoonStoreController {
     public void webtoonList() {
 
         try {
-        String titleListUrl = naverTitleList;
-        Document listDoc = Jsoup.connect(titleListUrl).get();
-        Elements listElemList = listDoc.select(".col_inner ul li a");
+            String titleListUrl = naverTitleList;
+            Document listDoc = Jsoup.connect(titleListUrl).get();
+            Elements listElemList = listDoc.select(".col_inner ul li a");
 
             for (Element anElem : listElemList) {
                 anElem.attributes().get("href");
@@ -137,7 +145,7 @@ public class webtoonStoreController {
                 String weekday = arrHref[2];
 
                 String titleNm = anElem.attributes().get("title");
-                if(!StringUtils.isEmpty(titleNm)) {
+                if (!StringUtils.isEmpty(titleNm)) {
                     WebtoonEntity webtoonEntity = new WebtoonEntity();
                     webtoonEntity.setTitleId(titleId);
                     webtoonEntity.setWeekday(weekday);
@@ -156,8 +164,102 @@ public class webtoonStoreController {
 
             }
 
+        } catch (Exception e) {
+            log.error(e.getMessage());
         }
-            catch (Exception e) {
+    }
+
+    @GetMapping(value = "/newtoki")
+    @ResponseBody
+    public void newtoki() {
+
+        try {
+            String titleListUrl = "https://newtoki62.com/webtoon/p";
+            for (int i = 1; i <= 10; i++) {
+                Document listDoc = Jsoup.connect(titleListUrl+i).userAgent("Mozilla").get();
+                Elements listElemList = listDoc.select("#webtoon-list-all li .img-item div a");
+                for (Element anElem : listElemList) {
+                    String[] arrHref = anElem.attributes().get("href").split("/");
+                    log.error("{}", arrHref[4]);
+                    log.error("{}", arrHref[5]);
+                }
+
+            }
+
+        } catch (Exception e) {
+            log.error(e.getMessage());
+        }
+    }
+
+    @GetMapping(value = "/newtoki_d")
+    @ResponseBody
+    public void newtoki_d() {
+
+        try {
+
+            List<Newtoki_mEntity> MList = newtoki_mService.getList();
+
+            for(Newtoki_mEntity MnewtoKi : MList) {
+
+                String titleListUrl = "https://newtoki62.com/webtoon/";
+                Document listDoc = Jsoup.connect(titleListUrl+MnewtoKi.getTitleNo()).userAgent("Mozilla").get();
+                Elements listElemList = listDoc.select("#serial-move ul li.list-item div.wr-subject a");
+                for (Element anElem : listElemList) {
+                    String[] arrHref = anElem.attributes().get("href").split("/");
+
+                    String detailUrl = "https://newtoki62.com/webtoon/" + arrHref[4];
+                    String detailSubject = arrHref[5].substring(0,arrHref[5].indexOf("?"));
+
+
+                    Document doc = Jsoup.connect(detailUrl).userAgent("Mozilla").get();
+                    Elements elemList = doc.select(".view-content img");
+
+                    int index = 0;
+                    String folderDir = "E:\\03.만화\\웹툰\\뉴토끼\\" + MnewtoKi.getTitleNm() + "\\" + detailSubject;
+                    File filedir = new File(folderDir);
+
+                    if (!filedir.isDirectory()) {
+                        filedir.mkdirs();
+                    }
+
+                        for (Element anElem_d : elemList) {
+                            String imgSrc = anElem_d.attributes().get("data-original");
+
+                            File imgFile = new File(folderDir + "\\" + index + ".jpg");
+
+                            if(!imgFile.isFile()) {
+                                URL imgUrl = new URL(imgSrc);
+
+
+                                URLConnection urlConnection = imgUrl.openConnection();
+                                urlConnection.setRequestProperty("referer", "https://newtoki62.com");
+                                urlConnection.addRequestProperty("User-Agent", "Mozilla");
+
+                                urlConnection.connect();
+
+                                InputStream in = urlConnection.getInputStream();
+                                BufferedImage bi = ImageIO.read(in);
+                                ImageIO.write(bi, "jpg", imgFile);
+
+                                log.error("생성완료============"+folderDir + "\\" + index + ".jpg" );
+
+                                index++;
+                            }
+
+                        }
+
+
+
+               /* Newtoki_dEntity newtoki_dEntity = new Newtoki_dEntity();
+                newtoki_dEntity.setTitleNo("45170");
+                newtoki_dEntity.setTitleDNo(arrHref[4]);
+                newtoki_dEntity.setSubject(arrHref[5].substring(0,arrHref[5].indexOf("?")));
+
+                newtoki_dService.saveWebtoonEntity(newtoki_dEntity);*/
+                }
+            }
+
+        } catch (Exception e) {
             log.error(e.getMessage());
         }
     }

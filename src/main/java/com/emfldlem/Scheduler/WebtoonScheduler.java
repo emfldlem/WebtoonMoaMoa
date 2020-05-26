@@ -1,27 +1,27 @@
 package com.emfldlem.Scheduler;
 
-import com.emfldlem.Common.CommonUtil;
-import com.emfldlem.webtoonStore.Entity.WebtoonEntity;
-import com.emfldlem.webtoonStore.Service.WebtoonService;
-import lombok.extern.slf4j.Slf4j;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.List;
+
+import javax.imageio.ImageIO;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.InputStream;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.List;
+import com.emfldlem.Common.CommonUtil;
+import com.emfldlem.webtoonStore.Entity.WebtoonEntity;
+import com.emfldlem.webtoonStore.Service.WebtoonService;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
@@ -41,7 +41,7 @@ public class WebtoonScheduler {
     WebtoonService webtoonService;
 
     //매일 새벽 1시
-    @Scheduled(cron = "* *  1  *  * ?")
+    //@Scheduled(cron = "* *  1  *  * ?")
     void naverWebtoonDown() {
         try {
 
@@ -112,7 +112,7 @@ public class WebtoonScheduler {
     }
 
     //매월 말일 새벽 2시
-    @Scheduled(cron = "0 0 3 30 1/1 ?")
+    //@Scheduled(cron = "0 0 3 30 1/1 ?")
     void naverWebtoonListUpdate() {
         try {
             String titleListUrl = naverTitleList;
