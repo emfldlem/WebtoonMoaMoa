@@ -10,8 +10,8 @@ public interface Newtoki_mRepository extends CrudRepository<Newtoki_mEntity, Str
 
     List<Newtoki_mEntity> findAll();
 
-    List<Newtoki_mEntity> findByTitleNo(String titleNo);
-
-
+    List<Newtoki_mEntity> findByCompleteYn(String completeYn);
+    List<Newtoki_mEntity> findTop5ByCompleteYnAndErrorYn(String completeYn, String errorYn);
+    Newtoki_mEntity findByTitleNo(String titleNo);
 
 }

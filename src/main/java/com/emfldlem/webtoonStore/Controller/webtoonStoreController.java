@@ -17,12 +17,14 @@ import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.emfldlem.Common.CommonUtil;
+import com.emfldlem.webtoonStore.Entity.Newtoki_dEntity;
 import com.emfldlem.webtoonStore.Entity.Newtoki_mEntity;
 import com.emfldlem.webtoonStore.Entity.WebtoonEntity;
 import com.emfldlem.webtoonStore.Service.Newtoki_dService;
@@ -176,12 +178,36 @@ public class webtoonStoreController {
         try {
             String titleListUrl = "https://newtoki62.com/webtoon/p";
             for (int i = 1; i <= 10; i++) {
-                Document listDoc = Jsoup.connect(titleListUrl+i).userAgent("Mozilla").get();
+                Document listDoc = Jsoup.connect(titleListUrl + i+"?toon=BL%2FGL").userAgent("Mozilla").get();
+
                 Elements listElemList = listDoc.select("#webtoon-list-all li .img-item div a");
-                for (Element anElem : listElemList) {
-                    String[] arrHref = anElem.attributes().get("href").split("/");
-                    log.error("{}", arrHref[4]);
-                    log.error("{}", arrHref[5]);
+                Elements updateDateElemList = listDoc.select("#webtoon-list-all li .list-date");
+                Elements liElemList = listDoc.select("#webtoon-list-all li");
+                for(int j=0; j <liElemList.size(); j++) {
+                    Element aElem = listElemList.get(j);
+                    Element udDateElem = updateDateElemList.get(j);
+                    Element liElem = liElemList.get(j);
+
+                    String[] arrHref = aElem.attributes().get("href").split("/");
+
+                    Newtoki_mEntity newtoki_mEntity = newtoki_mService.findByTitleNo(arrHref[4]);
+                    if(ObjectUtils.isEmpty(newtoki_mEntity)) {
+                       newtoki_mEntity = new Newtoki_mEntity();
+                       newtoki_mEntity.setTitleNo(arrHref[4]);
+                       newtoki_mEntity.setTitleNm(liElem.attributes().get("date-title"));
+                       newtoki_mEntity.setCompleteYn("N");
+                       newtoki_mEntity.setErrorYn("N");
+                    }
+                    newtoki_mEntity.setWeekday(liElem.attributes().get("data-weekday"));
+                    newtoki_mEntity.setInitialI(liElem.attributes().get("data-initial"));
+                    newtoki_mEntity.setGenre(liElem.attributes().get("data-genre")+",BL");
+                    newtoki_mEntity.setTitleNm(liElem.attributes().get("date-title"));
+                    newtoki_mEntity.setCompleteYn("Y");
+                    newtoki_mEntity.setUpdateTerm(udDateElem.text());
+
+                    newtoki_mService.saveNewtokiM(newtoki_mEntity);
+                    log.error("{}",newtoki_mEntity);
+
                 }
 
             }
@@ -191,43 +217,56 @@ public class webtoonStoreController {
         }
     }
 
-    @GetMapping(value = "/newtoki_d")
-    @ResponseBody
+   // @Scheduled(cron = "0 0/1 * * * ?")
+    /*@GetMapping(value = "/newtoki_d")
+    @ResponseBody*/
     public void newtoki_d() {
+        Newtoki_mEntity errorNewtoki = new Newtoki_mEntity();
 
         try {
 
             List<Newtoki_mEntity> MList = newtoki_mService.getList();
 
-            for(Newtoki_mEntity MnewtoKi : MList) {
+            for (Newtoki_mEntity MnewtoKi : MList) {
+                errorNewtoki = MnewtoKi;
 
                 String titleListUrl = "https://newtoki62.com/webtoon/";
-                Document listDoc = Jsoup.connect(titleListUrl+MnewtoKi.getTitleNo()).userAgent("Mozilla").get();
+                Document listDoc = Jsoup.connect(titleListUrl + MnewtoKi.getTitleNo()).userAgent("Mozilla").get();
                 Elements listElemList = listDoc.select("#serial-move ul li.list-item div.wr-subject a");
-                for (Element anElem : listElemList) {
+                Elements reversList = new Elements();
+
+                while(!listElemList.isEmpty()) {
+                    reversList.add(listElemList.last());
+                    listElemList.remove(listElemList.size()-1);
+                }
+
+                Newtoki_dEntity lastD = newtoki_dService.findTopByTitleNoOrderByTitleDNo(MnewtoKi.getTitleNo());
+
+                for (Element anElem : reversList) {
                     String[] arrHref = anElem.attributes().get("href").split("/");
 
                     String detailUrl = "https://newtoki62.com/webtoon/" + arrHref[4];
-                    String detailSubject = arrHref[5].substring(0,arrHref[5].indexOf("?"));
+                    String detailSubject = arrHref[5].substring(0, arrHref[5].indexOf("?"));
 
+                    if (ObjectUtils.isEmpty(lastD) || Integer.parseInt(lastD.getTitleDNo()) <= Integer.parseInt(arrHref[4])) {
 
-                    Document doc = Jsoup.connect(detailUrl).userAgent("Mozilla").get();
-                    Elements elemList = doc.select(".view-content img");
+                        Document doc = Jsoup.connect(detailUrl).userAgent("Mozilla").get();
+                        Elements elemList = doc.select(".view-content img");
 
-                    int index = 0;
-                    String folderDir = "E:\\03.만화\\웹툰\\뉴토끼\\" + MnewtoKi.getTitleNm() + "\\" + detailSubject;
-                    File filedir = new File(folderDir);
+                        int index = 0;
+                        String folderDir = "E:\\03.만화\\웹툰\\뉴토끼\\" + MnewtoKi.getTitleNm() + "\\" + detailSubject;
+                        File filedir = new File(folderDir);
 
-                    if (!filedir.isDirectory()) {
-                        filedir.mkdirs();
-                    }
+                        if (!filedir.isDirectory()) {
+                            filedir.mkdirs();
+                        }
 
                         for (Element anElem_d : elemList) {
                             String imgSrc = anElem_d.attributes().get("data-original");
 
                             File imgFile = new File(folderDir + "\\" + index + ".jpg");
 
-                            if(!imgFile.isFile()) {
+                            if (!imgFile.isFile()) {
                                 URL imgUrl = new URL(imgSrc);
 
 
@@ -241,26 +280,28 @@ public class webtoonStoreController {
                                 BufferedImage bi = ImageIO.read(in);
                                 ImageIO.write(bi, "jpg", imgFile);
 
-                                log.error("생성완료============"+folderDir + "\\" + index + ".jpg" );
+                                log.error("생성완료============" + folderDir + "\\" + index + ".jpg");
 
                                 index++;
                             }
-
                         }
+                        Newtoki_dEntity newtoki_dEntity = new Newtoki_dEntity();
+                        newtoki_dEntity.setTitleNo(MnewtoKi.getTitleNo());
+                        newtoki_dEntity.setTitleDNo(arrHref[4]);
+                        newtoki_dEntity.setSubject(arrHref[5].substring(0,arrHref[5].indexOf("?")));
 
-
-
-               /* Newtoki_dEntity newtoki_dEntity = new Newtoki_dEntity();
-                newtoki_dEntity.setTitleNo("45170");
-                newtoki_dEntity.setTitleDNo(arrHref[4]);
-                newtoki_dEntity.setSubject(arrHref[5].substring(0,arrHref[5].indexOf("?")));
-
-                newtoki_dService.saveWebtoonEntity(newtoki_dEntity);*/
+                        newtoki_dService.saveWebtoonEntity(newtoki_dEntity);
+                    }
                 }
+                MnewtoKi.setCompleteYn("Y");
+                newtoki_mService.saveNewtokiM(MnewtoKi);
+
             }
 
         } catch (Exception e) {
             log.error(e.getMessage());
+            errorNewtoki.setErrorYn("Y");
+            newtoki_mService.saveNewtokiM(errorNewtoki);
         }
     }
 

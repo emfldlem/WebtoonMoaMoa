@@ -15,7 +15,16 @@ public class Newtoki_mService {
     Newtoki_mRepository newtoki_mRepository;
 
     public List<Newtoki_mEntity> getList() {
-        return newtoki_mRepository.findAll();
+        return newtoki_mRepository.findTop5ByCompleteYnAndErrorYn("N","N");
+    }
+
+    public Newtoki_mEntity findByTitleNo(String titleNo) {
+        return newtoki_mRepository.findByTitleNo(titleNo);
+    }
+
+
+    public void saveNewtokiM(Newtoki_mEntity newtoki_mEntity) {
+        newtoki_mRepository.save(newtoki_mEntity);
     }
 
 }

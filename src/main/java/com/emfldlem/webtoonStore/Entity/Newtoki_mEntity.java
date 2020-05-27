@@ -21,4 +21,22 @@ public class Newtoki_mEntity implements Serializable {
     @Column(name="title_nm")
     String titleNm;
 
+    @Column(name="weekday")
+    String weekday;
+
+    @Column(name="initial_i")
+    String initialI;
+
+    @Column(name="genre")
+    String genre;
+
+    @Column(name= "update_term")
+    String updateTerm;
+
+    @Column(name="complete_yn")
+    String completeYn;
+
+    @Column(name="error_yn")
+    String errorYn;
+
 }

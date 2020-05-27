@@ -11,4 +11,7 @@ public interface Newtoki_dRepository extends CrudRepository<Newtoki_dEntity, Str
 
     List<Newtoki_dEntity> findByTitleNo(String titleNo);
 
+    Newtoki_dEntity findTopByTitleNoOrderByTitleDNoDesc(String titleNo);
+
+
 }

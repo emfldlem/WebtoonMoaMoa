@@ -21,6 +21,9 @@ public class Newtoki_dEntity implements Serializable {
     @Column(name="title_no")
     String titleNo;
 
+    @Column(name="title_count")
+    String titleCount;
+
     @Column(name="subject")
     String subject;
 
