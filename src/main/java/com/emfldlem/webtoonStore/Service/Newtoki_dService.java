@@ -22,8 +22,4 @@ public class Newtoki_dService {
         return newtoki_dRepository.save(newtoki_dEntity);
     }
 
-    public Newtoki_dEntity findTopByTitleNoOrderByTitleDNo(String titleNo) {
-        return newtoki_dRepository.findTopByTitleNoOrderByTitleDNoDesc(titleNo);
-    }
-
 }
